@@ -31,8 +31,7 @@
 
 -spec date2ts(date()) -> timestamp().
 date2ts({Y, M, D}) ->
-    calendar:datetime_to_gregorian_seconds({{Y, M, D}, {0, 0, 0}})
-    - calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0,0,0}}).
+    datetime2ts({{Y,M,D}, {0,0,0}}).
 
 -spec datetime2ts(datetime()) -> timestamp().
 datetime2ts(Datetime) ->
