@@ -32,12 +32,13 @@
 -spec date2ts(date()) -> timestamp().
 date2ts({Y, M, D}) ->
     calendar:datetime_to_gregorian_seconds({{Y, M, D}, {0, 0, 0}})
-        - calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0,0,0}}).
+    - calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0,0,0}}).
 
 -spec datetime2ts(datetime()) -> timestamp().
 datetime2ts(Datetime) ->
+    DateTime1970 = calendar:universal_time_to_local_time({{1970,1,1},{0,0,0}}),
     calendar:datetime_to_gregorian_seconds(Datetime)
-        - calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0,0,0}}).
+    - calendar:datetime_to_gregorian_seconds(DateTime1970).
 
 -spec ts2date(timestamp()) -> date().
 ts2date(Timestamp) ->
@@ -46,7 +47,8 @@ ts2date(Timestamp) ->
 
 -spec ts2datetime(timestamp()) -> datetime().
 ts2datetime(Timestamp) ->
-    BaseDate = calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}}),
+    DateTime1970 = calendar:universal_time_to_local_time({{1970,1,1},{0,0,0}}),
+    BaseDate = calendar:datetime_to_gregorian_seconds(DateTime1970),
     Seconds = BaseDate + Timestamp,
     calendar:gregorian_seconds_to_datetime(Seconds).
 
@@ -73,10 +75,10 @@ range(Start, End, Interval) ->
 
 map(F, Start, End, Period) when Start =< End ->
     Align = case Period of
-                 days -> fun day_start/1;
-                 hours -> fun hour_start/1;
-                 minutes -> fun minute_start/1;
-                 seconds -> fun (X) -> X end
+                days -> fun day_start/1;
+                hours -> fun hour_start/1;
+                minutes -> fun minute_start/1;
+                seconds -> fun (X) -> X end
             end,
 
     do_map(F, Align(Start), Align(End), Period, []);
@@ -111,9 +113,20 @@ shift(Ts, N, minutes) -> Ts + (N * 60);
 shift(Ts, N, minute)  -> Ts + (N * 60);
 shift(Ts, N, seconds) -> Ts + N.
 
-day_start(Ts)    -> Ts - (Ts rem 86400).
-hour_start(Ts)   -> Ts - (Ts rem 3600).
-minute_start(Ts) -> Ts - (Ts rem 60).
+day_start(Ts)    ->
+    NewTs = time_fix(Ts),
+    Ts - (NewTs rem 86400).
+hour_start(Ts)   ->
+    NewTs = time_fix(Ts),
+    Ts - (NewTs rem 3600).
+minute_start(Ts) ->
+    NewTs = time_fix(Ts),
+    Ts - (NewTs rem 60).
+
+time_fix(Ts) ->
+    DateTime1970 = calendar:universal_time_to_local_time({{1970,1,1},{0,0,0}}),
+    TimeFix = calendar:datetime_to_gregorian_seconds(DateTime1970) - calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}}),
+    Ts + TimeFix.
 
 week_start(Ts) ->
     WeekDay = calendar:day_of_the_week(ts2date(Ts)),
